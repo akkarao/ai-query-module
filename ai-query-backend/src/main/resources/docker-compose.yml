@@ -1,0 +1,19 @@
+services:
+  mongodb:
+    image: mongo:8.0
+    container_name: ai-query-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: ai_query_dashboard
+    volumes:
+      - ai_query_mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok' localhost:27017/test | grep 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  ai_query_mongodb_data:
