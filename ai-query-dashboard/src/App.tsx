@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
   BarChart3,
-  Check,
   CircleHelp,
+  Clock3,
   Database,
   Edit3,
   LineChart,
@@ -94,11 +94,50 @@ function displayValue(value: unknown) {
   return JSON.stringify(value, null, 2);
 }
 
+function formatCardTimestamp(value?: string) {
+  const date = value ? new Date(value) : new Date();
+  if (Number.isNaN(date.getTime())) return "Updated just now";
+  return `Updated ${new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date)}`;
+}
+
 function normalizeChartValue(value: unknown): unknown {
   if (typeof value !== "string") return value;
   const trimmed = value.trim();
   if (trimmed !== "" && Number.isFinite(Number(trimmed))) return Number(trimmed);
   return value;
+}
+
+function PncChartTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: { name?: unknown; value?: unknown; color?: string }[];
+  label?: unknown;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="pnc-chart-tooltip">
+      <div className="pnc-chart-tooltip-label">{displayValue(label || "Selected data")}</div>
+      <div className="pnc-chart-tooltip-divider" />
+      {payload.map((item, index) => (
+        <div className="pnc-chart-tooltip-row" key={`${String(item.name)}-${index}`}>
+          <span className="pnc-chart-tooltip-name">
+            <span className="pnc-chart-tooltip-dot" style={{ backgroundColor: item.color || "#f58025" }} />
+            {displayValue(item.name || "Value")}
+          </span>
+          <strong>{displayValue(item.value)}</strong>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 const textFields = new Set([
@@ -108,22 +147,30 @@ const textFields = new Set([
 ]);
 const chartTypes = new Set(["bar", "stackedBar", "line", "area", "pie", "scatter", "histogram"]);
 
+function insightTypeLabel(type: string) {
+  if (type === "metric") return "KPI";
+  if (type === "table") return "Records";
+  if (type === "text") return "Analysis";
+  if (type === "stackedBar") return "Composition";
+  return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
 function TextFallback({ spec, message }: { spec: RenderSpec; message?: string }) {
   const bullets = Array.isArray(spec.bullets) ? spec.bullets : [];
   const details = Array.isArray(spec.details) ? spec.details : [];
   return (
-    <div className="space-y-4 py-5">
-      <h4 className="text-base font-semibold text-white">{spec.title || "Response"}</h4>
-      <p className="text-sm leading-7 text-slate-300">
+    <div className="text-insight space-y-4 py-5">
+      <h4 className="text-insight-title text-base font-semibold text-white">{spec.title || "Response"}</h4>
+      <p className="text-insight-summary text-sm leading-7 text-slate-300">
         {spec.summary || spec.description || spec.value || message || "Response details"}
       </p>
       {bullets.length > 0 && (
-        <ul className="space-y-2 border-l border-[#f58025]/40 pl-4 text-sm leading-6 text-slate-300">
-          {bullets.map((bullet, index) => <li key={index}>{bullet}</li>)}
+        <ul className="text-insight-bullets space-y-2 border-l border-[#f58025]/40 pl-4 text-sm leading-6 text-slate-300">
+          {bullets.map((bullet, index) => <li key={index}><span>{bullet}</span></li>)}
         </ul>
       )}
       {details.length > 0 && (
-        <dl className="grid gap-3 border-t border-white/8 pt-4 sm:grid-cols-2">
+        <dl className="text-insight-details grid gap-3 border-t border-white/8 pt-4 sm:grid-cols-2">
           {details.map((detail) => (
             <div key={detail.label}>
               <dt className="font-mono text-[10px] uppercase tracking-[.14em] text-slate-500">{detail.label}</dt>
@@ -151,22 +198,22 @@ function Visual({ spec }: { spec: RenderSpec }) {
     );
   if (spec.type === "text")
     return (
-      <div className="space-y-4 py-5">
+      <div className="text-insight space-y-4 py-5">
         {spec.title && (
-          <h4 className="text-base font-semibold text-white">{spec.title}</h4>
+          <h4 className="text-insight-title text-base font-semibold text-white">{spec.title}</h4>
         )}
-        <p className="text-sm leading-7 text-slate-300">
+        <p className="text-insight-summary text-sm leading-7 text-slate-300">
           {spec.summary || spec.description || spec.value || "Response details"}
         </p>
         {spec.bullets && spec.bullets.length > 0 && (
-          <ul className="space-y-2 border-l border-[#f58025]/40 pl-4 text-sm leading-6 text-slate-300">
+          <ul className="text-insight-bullets space-y-2 border-l border-[#f58025]/40 pl-4 text-sm leading-6 text-slate-300">
             {spec.bullets.map((bullet, index) => (
-              <li key={index}>{bullet}</li>
+              <li key={index}><span>{bullet}</span></li>
             ))}
           </ul>
         )}
         {spec.details && spec.details.length > 0 && (
-          <dl className="grid gap-3 border-t border-white/8 pt-4 sm:grid-cols-2">
+          <dl className="text-insight-details grid gap-3 border-t border-white/8 pt-4 sm:grid-cols-2">
             {spec.details.map((detail) => (
               <div key={detail.label}>
                 <dt className="font-mono text-[10px] uppercase tracking-[.14em] text-slate-500">
@@ -178,13 +225,13 @@ function Visual({ spec }: { spec: RenderSpec }) {
           </dl>
         )}
         {spec.sections && spec.sections.length > 0 && (
-          <div className="space-y-4 border-t border-white/8 pt-4">
+          <div className="text-insight-sections space-y-4 border-t border-white/8 pt-4">
             {spec.sections.map((section) => (
               <section key={section.heading}>
-                <h5 className="text-xs font-semibold uppercase tracking-[.14em] text-slate-500">{section.heading}</h5>
+                <h5 className="text-insight-section-title text-xs font-semibold uppercase tracking-[.14em] text-slate-500">{section.heading}</h5>
                 <dl className="mt-2 grid gap-3 sm:grid-cols-2">
                   {section.items.map((item) => (
-                    <div key={item.label} className="rounded-lg bg-black/3 px-3 py-2">
+                    <div key={item.label} className="text-insight-item rounded-lg bg-black/3 px-3 py-2">
                       <dt className="text-xs text-slate-500">{item.label}</dt>
                       <dd className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{displayValue(item.value)}</dd>
                     </div>
@@ -195,7 +242,7 @@ function Visual({ spec }: { spec: RenderSpec }) {
           </div>
         )}
         {Object.entries(spec).some(([key]) => !textFields.has(key)) && (
-          <dl className="grid gap-3 border-t border-white/8 pt-4 sm:grid-cols-2">
+          <dl className="text-insight-details grid gap-3 border-t border-white/8 pt-4 sm:grid-cols-2">
             {Object.entries(spec)
               .filter(([key]) => !textFields.has(key))
               .map(([key, value]) => (
@@ -260,12 +307,16 @@ function Visual({ spec }: { spec: RenderSpec }) {
   const seriesKeys = (spec.yKeys?.filter((key) => availableKeys.includes(key)) || []).length
     ? spec.yKeys!.filter((key) => availableKeys.includes(key))
     : [yKey];
+  const chartColors = ["#f58025", "#1c7c8c", "#6b8e23", "#6684a8", "#d4634e"];
+  const legendItems = spec.type === "pie"
+    ? chartData.map((row, index) => ({ label: String(row[xKey]), color: chartColors[index % chartColors.length] }))
+    : seriesKeys.map((seriesKey, index) => ({ label: seriesKey, color: spec.color || chartColors[index % chartColors.length] }));
   const common = {
     data: chartData,
     margin: { top: 12, right: 8, left: -18, bottom: 0 },
   };
   return (
-    <div className="h-72 min-w-0 w-full overflow-x-auto pt-3">
+    <div className="chart-shell h-72 min-w-0 w-full overflow-x-auto pt-3">
       <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
         <span
           className="h-2 w-2 rounded-full"
@@ -284,15 +335,13 @@ function Visual({ spec }: { spec: RenderSpec }) {
         )}
         {spec.metricDescription && <span className="text-slate-400">{spec.metricDescription}</span>}
       </div>
-      <ResponsiveContainer width="100%" minWidth={420} height="100%">
+      <div className="chart-layout">
+      <div className="chart-visual">
+      <ResponsiveContainer width="100%" minWidth={360} height="100%">
         {spec.type === "pie" ? (
           <PieChart>
             <Tooltip
-              contentStyle={{
-                background: "#171b25",
-                border: "1px solid #ffffff1a",
-                borderRadius: 8,
-              }}
+              content={<PncChartTooltip />}
             />
             <Pie
               data={chartData}
@@ -307,7 +356,7 @@ function Visual({ spec }: { spec: RenderSpec }) {
               {chartData.map((_, index) => (
                 <Cell
                   key={`slice-${index}`}
-                  fill={["#f58025", "#1c7c8c", "#6b8e23", "#6684a8", "#d4634e"][index % 5]}
+                  fill={chartColors[index % chartColors.length]}
                 />
               ))}
             </Pie>
@@ -317,7 +366,7 @@ function Visual({ spec }: { spec: RenderSpec }) {
             <CartesianGrid stroke="#ffffff0d" />
             <XAxis dataKey={xKey} type="number" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
             <YAxis dataKey={yKey} type="number" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-            <Tooltip contentStyle={{ background: "#171b25", border: "1px solid #ffffff1a", borderRadius: 8 }} />
+            <Tooltip content={<PncChartTooltip />} />
             <Scatter data={chartData} fill={spec.color || "#1c7c8c"} />
           </ScatterChart>
         ) : spec.type === "bar" || spec.type === "histogram" || spec.type === "stackedBar" ? (
@@ -337,17 +386,13 @@ function Visual({ spec }: { spec: RenderSpec }) {
               axisLine={false}
             />
             <Tooltip
-              contentStyle={{
-                background: "#171b25",
-                border: "1px solid #ffffff1a",
-                borderRadius: 8,
-              }}
+              content={<PncChartTooltip />}
             />
             {seriesKeys.map((seriesKey, index) => (
               <Bar
                 key={seriesKey}
                 dataKey={seriesKey}
-                fill={spec.color || ["#f58025", "#1c7c8c", "#6b8e23", "#6684a8"][index % 4]}
+                fill={spec.color || chartColors[index % chartColors.length]}
                 stackId={spec.type === "stackedBar" ? "stack" : undefined}
                 radius={[4, 4, 0, 0]}
               />
@@ -370,11 +415,7 @@ function Visual({ spec }: { spec: RenderSpec }) {
               axisLine={false}
             />
             <Tooltip
-              contentStyle={{
-                background: "#171b25",
-                border: "1px solid #ffffff1a",
-                borderRadius: 8,
-              }}
+              content={<PncChartTooltip />}
             />
             <Line
               type="monotone"
@@ -415,11 +456,7 @@ function Visual({ spec }: { spec: RenderSpec }) {
               axisLine={false}
             />
             <Tooltip
-              contentStyle={{
-                background: "#171b25",
-                border: "1px solid #ffffff1a",
-                borderRadius: 8,
-              }}
+              content={<PncChartTooltip />}
             />
             <Area
               type="monotone"
@@ -431,6 +468,17 @@ function Visual({ spec }: { spec: RenderSpec }) {
           </AreaChart>
         )}
       </ResponsiveContainer>
+      </div>
+      <div className="chart-legend" aria-label="Chart legend">
+        <span className="chart-legend-title">Legend</span>
+        {legendItems.map((item) => (
+          <div className="chart-legend-item" key={item.label}>
+            <span className="chart-legend-swatch" style={{ backgroundColor: item.color }} />
+            <span title={item.label}>{item.label}</span>
+          </div>
+        ))}
+      </div>
+      </div>
     </div>
   );
 }
@@ -447,11 +495,12 @@ function App() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
   const [pendingUpdate, setPendingUpdate] = useState<PendingCardUpdate | null>(null);
+  const [focusedCardId, setFocusedCardId] = useState<string | number | null>(null);
   useEffect(() => {
     setBusy(true);
     fetch("/api/cards")
       .then((response) => response.json())
-      .then((savedCards: { cardId: string; title: string; query: string; spec: RenderSpec }[]) => {
+      .then((savedCards: { cardId: string; title: string; query: string; spec: RenderSpec; savedAt?: string; updatedAt?: string }[]) => {
         setSavedIds(new Set(savedCards.map((card) => card.cardId)));
         setCards(savedCards.map((card) => ({
           ...card,
@@ -460,7 +509,7 @@ function App() {
           spec: normalizeRenderSpec(card.spec),
           id: card.cardId,
           minimized: false,
-          updated: "Saved in MongoDB",
+          updated: formatCardTimestamp(card.updatedAt || card.savedAt),
         })));
       })
       .catch(() => undefined)
@@ -471,6 +520,9 @@ function App() {
       card.title.toLowerCase().includes(search.toLowerCase()) ||
       card.query.toLowerCase().includes(search.toLowerCase()),
   );
+  const canvasCards = maximizedId === null
+    ? visible
+    : visible.filter((card) => card.id === maximizedId);
   const runQuery = async () => {
     if (!query.trim()) {
       queryInputRef.current?.focus();
@@ -490,7 +542,7 @@ function App() {
         setPendingUpdate({ cardId: activeId, title, query, spec });
       } else if (activeId !== null) {
         setCards((current) => current.map((card) =>
-          card.id === activeId ? { ...card, title, query, spec, updated: "Just now" } : card,
+          card.id === activeId ? { ...card, title, query, spec, updated: formatCardTimestamp() } : card,
         ));
         setQuery("");
         setActiveId(null);
@@ -503,7 +555,7 @@ function App() {
             query,
             spec,
             minimized: false,
-            updated: "Just now",
+            updated: formatCardTimestamp(),
           },
         ]);
         setQuery("");
@@ -532,7 +584,7 @@ function App() {
       if (!response.ok) throw new Error("Could not update card");
       setCards((current) => current.map((card) =>
         card.id === pendingUpdate.cardId
-          ? { ...card, title: pendingUpdate.title, query: pendingUpdate.query, spec: pendingUpdate.spec, updated: "Updated in MongoDB" }
+          ? { ...card, title: pendingUpdate.title, query: pendingUpdate.query, spec: pendingUpdate.spec, updated: formatCardTimestamp() }
           : card,
       ));
       setPendingUpdate(null);
@@ -563,7 +615,7 @@ function App() {
       if (!response.ok) throw new Error("Could not save card");
       const saved = await response.json();
       setSavedIds((current) => new Set(current).add(saved.cardId));
-      setCards((current) => current.map((item) => item.id === card.id ? { ...item, id: saved.cardId, updated: "Saved in MongoDB" } : item));
+      setCards((current) => current.map((item) => item.id === card.id ? { ...item, id: saved.cardId, updated: formatCardTimestamp(saved.savedAt || saved.updatedAt) } : item));
     } finally {
       setSavingIds((current) => {
         const next = new Set(current);
@@ -608,22 +660,22 @@ function App() {
           <div className="pnc-name">PNC</div>
           <div>
             <div className="font-bold tracking-tight text-[#172b4d]">
-              PNC Insights
+              Payment Intelligence
             </div>
           </div>
         </div>
         <nav className="mt-12 space-y-1">
           <div className="flex items-center gap-3 rounded-lg bg-white/7 px-3 py-2.5 text-sm font-medium text-white">
             <PanelLeft size={17} />
-            Overview
+            Payment workspace
           </div>
           <div className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-500">
             <Database size={17} />
-            Data sources
+            Payment data
           </div>
           <div className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-500">
             <CircleHelp size={17} />
-            Documentation
+            Demo guide
           </div>
         </nav>
         <div className="absolute bottom-6 left-7 right-7 border-t border-white/8 pt-5">
@@ -643,31 +695,51 @@ function App() {
         <header className="flex h-20 items-center justify-between border-b border-white/8 px-6 md:px-10">
           <div>
               <h1 className="header-title mt-1 font-semibold tracking-tight text-[#172b4d]">
-                ISO Payments Insight
+                ISO Payment Insights
             </h1>
+            <p className="header-kicker">ISO 20022 payment operations workspace</p>
+            <div className="header-insight-meta">
+              <span className="header-saved-count">
+                <Database size={13} />
+                {cards.length} {cards.length === 1 ? "insight" : "insights"} on canvas
+              </span>
+              <span className="header-message">See payment health clearly. Investigate exceptions faster.</span>
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/4 px-3 py-2 md:flex">
+            <div className="insight-search hidden items-center gap-2 rounded-lg border border-white/10 bg-white/4 px-3 py-2 md:flex">
               <Search size={15} className="text-slate-500" />
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search cards"
-                className="w-32 bg-transparent text-xs outline-none placeholder:text-slate-600"
+                placeholder="Find payment insights"
+                className="bg-transparent text-xs outline-none placeholder:text-slate-600"
               />
             </div>
+            <button
+              className="header-explore"
+              onClick={() => queryInputRef.current?.focus()}
+              title="Start a new payment insight"
+            >
+              <Sparkles size={14} />
+              Explore more
+            </button>
           </div>
         </header>
         <div className="mx-auto max-w-7xl px-6 py-9 md:px-10">
-          <section className="mb-10 rounded-2xl border border-[#f58025]/25 bg-[#fff5ed] p-5">
+          <section className="insight-builder mb-10 rounded-2xl border border-[#f58025]/25 bg-[#fff5ed] p-5">
             <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-semibold text-white">
+              <div className="builder-heading flex items-center gap-2 text-sm font-semibold text-white">
                 <Sparkles size={16} className="text-[#f58025]" />
-                Build an insight
+                <span>Build an insight</span>
               </div>
               <span className="font-mono text-[10px] uppercase tracking-[.16em] text-slate-500">
                 {activeId ? "Editing card" : "New card"}
               </span>
+            </div>
+            <div className="builder-intro">
+              <h2>Ask your payment data anything.</h2>
+              <p>Turn a natural-language question into a clear insight, metric, table, or chart.</p>
             </div>
             {pendingUpdate && (
               <>
@@ -686,21 +758,30 @@ function App() {
                 </div>
               </>
             )}
-            <div className="grid gap-3 md:grid-cols-[220px_1fr_auto]">
-              <input
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                className="rounded-lg border border-[#cbd8e5] bg-white px-3.5 py-3 text-sm text-[#172b4d] outline-none placeholder:text-slate-500 focus:border-[#f58025]/60"
-                placeholder="Card heading"
-              />
-              <input
-                ref={queryInputRef}
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => event.key === "Enter" && runQuery()}
-                className="rounded-lg border border-[#cbd8e5] bg-white px-3.5 py-3 text-sm text-[#172b4d] outline-none placeholder:text-slate-500 focus:border-[#f58025]/60"
-                placeholder="Ask anything about your connected data..."
-              />
+            <div className="builder-fields">
+              <label className="builder-field builder-field-title">
+                <span>Insight name</span>
+                <input
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  className="rounded-lg border border-[#cbd8e5] bg-white px-3.5 py-3 text-sm text-[#172b4d] outline-none placeholder:text-slate-500 focus:border-[#f58025]/60"
+                  placeholder="e.g. Failed payments overview"
+                />
+              </label>
+              <label className="builder-field builder-field-query">
+                <span>Your question</span>
+                <div className="query-input-wrap">
+                  <Search size={17} />
+                  <input
+                    ref={queryInputRef}
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    onKeyDown={(event) => event.key === "Enter" && runQuery()}
+                    className="rounded-lg border border-[#cbd8e5] bg-white px-3.5 py-3 text-sm text-[#172b4d] outline-none placeholder:text-slate-500 focus:border-[#f58025]/60"
+                    placeholder="Ask about payments, failures, risk, trends, or settlement..."
+                  />
+                </div>
+              </label>
               <div className="query-actions">
                 <button
                   onClick={runQuery}
@@ -723,28 +804,88 @@ function App() {
                 </button>
               </div>
             </div>
+            <div className="builder-hint">
+              <span className="builder-hint-dot" />
+              Try: “Show failed payments by currency as a bar chart”
+            </div>
           </section>
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-semibold text-white">
-              <span className="font-mono text-[10px] uppercase tracking-[.16em] text-slate-500">
-                Live canvas
-              </span>
-              <span className="text-slate-600">/</span>
-              <span>{visible.length} cards</span>
-            </div>
-            <div className="font-mono text-[10px] uppercase tracking-[.16em] text-slate-600">
-              Save cards explicitly
-            </div>
-          </div>
-          <section className="grid gap-4 xl:grid-cols-2">
-            {visible.map((card) => (
+          <div className="workspace-layout">
+            <aside className="workspace-rail">
+              <div className="rail-heading">
+                <span className="rail-heading-kicker">Your insights</span>
+                <div className="canvas-heading">
+                  <span>Insight canvas</span>
+                  <span className="canvas-count">{visible.length} {visible.length === 1 ? "card" : "cards"}</span>
+                </div>
+                <span className="rail-save-note">Save cards explicitly</span>
+              </div>
+              <div className="rail-panel rail-summary">
+                <span className="rail-eyebrow">Workspace pulse</span>
+                <strong>{cards.length}</strong>
+                <span>{cards.length === 1 ? "saved insight" : "saved insights"}</span>
+                <div className="rail-rule" />
+                <p>Ask a question, shape the result, and keep the insights worth sharing.</p>
+              </div>
+              <div className="rail-panel">
+                <span className="rail-eyebrow">Try a demo query</span>
+                <button className="rail-prompt" onClick={() => { setTitle("Payment status overview"); setQuery("Show payment count by status as a bar chart"); queryInputRef.current?.focus(); }}>
+                  <span className="rail-prompt-icon"><BarChart3 size={14} /></span>
+                  <span>Payment status by volume</span>
+                </button>
+                <button className="rail-prompt" onClick={() => { setTitle("Failed payment review"); setQuery("Analyze failed payments and explain the main failure reasons"); queryInputRef.current?.focus(); }}>
+                  <span className="rail-prompt-icon rail-prompt-alert"><CircleHelp size={14} /></span>
+                  <span>Explain failed payments</span>
+                </button>
+                <button className="rail-prompt" onClick={() => { setTitle("Currency distribution"); setQuery("Create a pie chart showing payment distribution by currency"); queryInputRef.current?.focus(); }}>
+                  <span className="rail-prompt-icon rail-prompt-teal"><Database size={14} /></span>
+                  <span>Currency distribution</span>
+                </button>
+              </div>
+              <div className="rail-panel rail-insights">
+                <span className="rail-eyebrow">Saved insights</span>
+                {visible.length > 0 ? visible.slice(0, 5).map((card) => (
+                  <button
+                    key={card.id}
+                    className="rail-insight"
+                    title={`Open ${card.title}`}
+                    onClick={() => {
+                      const target = document.getElementById(`insight-card-${card.id}`);
+                      if (!target) return;
+                      setFocusedCardId(card.id);
+                      target.scrollIntoView({ behavior: "smooth", block: "center" });
+                      window.setTimeout(() => target.focus({ preventScroll: true }), 250);
+                      window.setTimeout(() => setFocusedCardId(null), 1800);
+                    }}
+                  >
+                    <span className={`rail-insight-icon rail-insight-${card.spec.type}`}>
+                      {card.spec.type === "table" ? <Table2 size={13} /> : card.spec.type === "metric" ? <BarChart3 size={13} /> : card.spec.type === "text" ? <Edit3 size={13} /> : <LineChart size={13} />}
+                    </span>
+                    <span className="rail-insight-copy">
+                      <strong className="tooltip-host" data-tooltip={card.title}>{card.title}</strong>
+                      <small>{insightTypeLabel(card.spec.type)}</small>
+                    </span>
+                  </button>
+                )) : (
+                  <p className="rail-empty">Your generated insights will appear here.</p>
+                )}
+                {visible.length > 5 && <span className="rail-more">+ {visible.length - 5} more insights on canvas</span>}
+              </div>
+              <div className="rail-note">
+                <Sparkles size={14} />
+                <span>Natural language in. Presentation-ready insight out.</span>
+              </div>
+            </aside>
+            <section className="insight-grid">
+              {canvasCards.map((card) => (
               <article
                 key={card.id}
-                className={`min-w-0 rounded-2xl border border-white/9 bg-[#11151d] px-5 py-4 shadow-[0_12px_40px_rgba(0,0,0,.12)] transition ${card.minimized ? "" : "min-h-[280px]"} ${maximizedId === card.id ? "card-is-maximized fixed inset-4 z-50 overflow-hidden" : ""}`}
+                id={`insight-card-${card.id}`}
+                tabIndex={-1}
+                className={`insight-card insight-card-${card.spec.type} min-w-0 rounded-2xl border border-white/9 bg-[#11151d] px-5 py-4 shadow-[0_12px_40px_rgba(0,0,0,.12)] transition ${focusedCardId === card.id ? "insight-card-focused" : ""} ${card.minimized ? "" : "min-h-[280px]"} ${maximizedId === card.id ? "card-is-maximized" : ""}`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex min-w-0 items-start gap-3">
-                    <div className="mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/4 text-slate-400">
+                    <div className="insight-icon mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-xl">
                       {card.spec.type === "table" ? (
                         <Table2 size={15} />
                       ) : card.spec.type === "metric" ? (
@@ -756,15 +897,19 @@ function App() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="truncate font-semibold text-white">
+                      <div className="mb-1 flex items-center gap-2">
+                        <span className="insight-type">{insightTypeLabel(card.spec.type)}</span>
+                      </div>
+                      <h3 className="insight-title tooltip-host font-semibold text-white" data-tooltip={card.title}>
                         {card.title}
                       </h3>
-                      <p className="mt-1 truncate font-mono text-[10px] text-slate-600">
-                        {card.query}
+                      <p className="query-caption tooltip-host mt-2 font-mono text-[10px] text-slate-600" data-tooltip={card.query}>
+                        <span className="query-caption-label">ASKED</span>
+                        <span>{card.query}</span>
                       </p>
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1 text-slate-600">
+                  <div className="card-actions flex shrink-0 items-center gap-1 text-slate-600">
                     <button
                       title={maximizedId === card.id ? "Restore card size" : "Maximize card"}
                       onClick={() =>
@@ -772,7 +917,7 @@ function App() {
                           current === card.id ? null : card.id,
                         )
                       }
-                      className="card-action"
+                      className="card-action card-action-expand"
                     >
                       {maximizedId === card.id ? (
                         <Minimize2 size={15} />
@@ -791,7 +936,7 @@ function App() {
                     <button
                       title="Edit card"
                       onClick={() => editCard(card)}
-                      className="card-action"
+                      className="card-action card-action-edit"
                     >
                       <Edit3 size={15} /> Edit
                     </button>
@@ -810,19 +955,18 @@ function App() {
                       <Visual spec={card.spec} />
                     </div>
                     <div className="mt-5 flex items-center justify-between border-t border-white/7 pt-3">
-                      <span className="font-mono text-[10px] uppercase tracking-[.14em] text-slate-600">
+                      <span className="card-timestamp">
+                        <Clock3 size={13} />
                         {card.updated}
                       </span>
-                      <div className="flex items-center gap-1 text-emerald-400">
-                        <Check size={13} />
-                        <span className="text-[11px]">Synced</span>
-                      </div>
+                      <span className="card-kind">ISO payment insight</span>
                     </div>
                   </>
                 )}
               </article>
-            ))}
-          </section>
+              ))}
+            </section>
+          </div>
           {visible.length === 0 && (
             <div className="rounded-2xl border border-dashed border-white/10 py-20 text-center">
               <p className="text-sm text-slate-500">
