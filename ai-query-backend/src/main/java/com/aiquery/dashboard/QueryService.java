@@ -1,31 +1,31 @@
 package com.aiquery.dashboard;
 
+import com.aiquery.dashboard.ai.AiClient;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.aiquery.dashboard.ai.AiClient;
 import jakarta.annotation.PostConstruct;
 import org.bson.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.UUID;
 
 @Service
 public class QueryService {
@@ -135,7 +135,7 @@ public class QueryService {
 
     public Object answer(String query) {
         logger.info("Query started: queryLength={}, issueQuestion={}",
-            query == null ? 0 : query.length(), isIssueQuestion(query));
+                query == null ? 0 : query.length(), isIssueQuestion(query));
         String normalizedQuery = normalize(query);
         Integer requestedYears = requestedYears(query);
         if (requestedYears != null && requestedYears > 1) {

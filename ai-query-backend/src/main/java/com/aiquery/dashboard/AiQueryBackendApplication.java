@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class AiQueryBackendApplication {
-  public static void main(String[] args) {
-    SpringApplication.run(AiQueryBackendApplication.class, args);
-  }
+    public static void main(String[] args) {
+        SpringApplication.run(AiQueryBackendApplication.class, args);
+    }
 }

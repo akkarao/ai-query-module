@@ -650,6 +650,12 @@ function App() {
     setActiveId(card.id);
     setTitle(card.title);
     setQuery(card.query);
+    requestAnimationFrame(() => {
+      const input = queryInputRef.current;
+      input?.focus();
+      input?.setSelectionRange(input.value.length, input.value.length);
+      input?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
   };
   return (
     <div className="app-shell theme-light min-h-screen bg-[#f4f6f8] text-slate-700">
@@ -891,7 +897,7 @@ function App() {
                     <button
                       title={savedIds.has(String(card.id)) ? "Saved in MongoDB" : "Save card in MongoDB"}
                       onClick={() => saveCard(card).catch(() => alert("Could not save this card."))}
-                      disabled={savedIds.has(String(card.id)) || savingIds.has(String(card.id))}
+                      disabled={maximizedId === card.id || savedIds.has(String(card.id)) || savingIds.has(String(card.id))}
                       className="card-action card-action-save"
                     >
                       <Bookmark size={14} /> {savedIds.has(String(card.id)) ? "Saved" : savingIds.has(String(card.id)) ? "Saving" : "Save"}
@@ -899,6 +905,7 @@ function App() {
                     <button
                       title="Edit card"
                       onClick={() => editCard(card)}
+                      disabled={maximizedId === card.id}
                       className="card-action card-action-edit"
                     >
                       <Edit3 size={15} /> Edit
@@ -906,6 +913,7 @@ function App() {
                     <button
                       title="Delete card"
                       onClick={() => deleteCard(card).catch(() => alert("Could not delete this card."))}
+                      disabled={maximizedId === card.id}
                       className="card-action card-action-delete"
                     >
                       <Trash2 size={15} /> Delete

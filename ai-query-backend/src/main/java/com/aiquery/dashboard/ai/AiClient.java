@@ -2,10 +2,10 @@ package com.aiquery.dashboard.ai;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -46,7 +46,7 @@ public class AiClient {
         this.maxTokens = maxTokens;
         this.reasoningEffort = reasoningEffort;
         logger.info("AI client initialized: provider={}, model={}, endpointPath={}, maxTokens={}",
-            provider, model, endpointPath, maxTokens);
+                provider, model, endpointPath, maxTokens);
     }
 
     public boolean isConfigured() {
@@ -56,29 +56,29 @@ public class AiClient {
     public String complete(String prompt) throws Exception {
         try {
             logger.info("AI request started: provider={}, model={}, promptLength={}",
-                provider.getClass().getSimpleName(), model, prompt == null ? 0 : prompt.length());
+                    provider.getClass().getSimpleName(), model, prompt == null ? 0 : prompt.length());
             Map<String, Object> requestBodyMap = provider.requestBody(model, prompt, maxTokens, reasoningEffort);
             String requestBody = objectMapper.writeValueAsString(requestBodyMap);
             int contentLength = requestBody.getBytes(StandardCharsets.UTF_8).length;
             logger.info("AI request prepared: endpointPath={}, contentLengthBytes={}", endpointPath, contentLength);
             RestClient.RequestBodySpec requestSpec = restClient.post().uri(endpointPath)
-                .contentType(MediaType.APPLICATION_JSON)
-                .header("Content-Length", String.valueOf(contentLength))
-                .header("Authorization", "Bearer " + apiKey);
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("Content-Length", String.valueOf(contentLength))
+                    .header("Authorization", "Bearer " + apiKey);
             provider.configureHeaders(requestSpec, anthropicVersion);
             String responseBody = requestSpec.body(requestBody).retrieve().body(String.class);
             String content = extractContent(responseBody);
             logger.info("AI request completed: provider={}, responseLength={}, contentLength={}",
-                provider.getClass().getSimpleName(), responseBody == null ? 0 : responseBody.length(), content.length());
+                    provider.getClass().getSimpleName(), responseBody == null ? 0 : responseBody.length(), content.length());
             return content;
         } catch (Exception exception) {
             logger.error("AI request failed: provider={}, model={}, endpointPath={}",
-                provider.getClass().getSimpleName(), model, endpointPath, exception);
+                    provider.getClass().getSimpleName(), model, endpointPath, exception);
             throw exception;
         }
-        }
+    }
 
-        public String providerName() {
+    public String providerName() {
         return provider.getClass().getSimpleName();
     }
 
