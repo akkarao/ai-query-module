@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   BarChart3,
-  CircleHelp,
+  ChevronDown,
   Clock3,
   Database,
   Edit3,
@@ -491,12 +491,14 @@ function App() {
   const queryInputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("New chart");
   const [busy, setBusy] = useState(false);
+  const [busyMessage, setBusyMessage] = useState("Loading saved insights...");
   const [search, setSearch] = useState("");
+  const [savedMenuOpen, setSavedMenuOpen] = useState(true);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
   const [pendingUpdate, setPendingUpdate] = useState<PendingCardUpdate | null>(null);
-  const [focusedCardId, setFocusedCardId] = useState<string | number | null>(null);
   useEffect(() => {
+    setBusyMessage("Loading saved insights...");
     setBusy(true);
     fetch("/api/cards")
       .then((response) => response.json())
@@ -520,6 +522,7 @@ function App() {
       card.title.toLowerCase().includes(search.toLowerCase()) ||
       card.query.toLowerCase().includes(search.toLowerCase()),
   );
+  const savedVisible = visible.filter((card) => savedIds.has(String(card.id)));
   const canvasCards = maximizedId === null
     ? visible
     : visible.filter((card) => card.id === maximizedId);
@@ -528,6 +531,7 @@ function App() {
       queryInputRef.current?.focus();
       return;
     }
+    setBusyMessage("Analyzing your payment question...");
     setBusy(true);
     try {
       const response = await fetch("/api/query", {
@@ -570,6 +574,7 @@ function App() {
   };
   const updateSavedCard = async () => {
     if (!pendingUpdate) return;
+    setBusyMessage("Updating saved insight...");
     setBusy(true);
     try {
       const response = await fetch(`/api/cards/${pendingUpdate.cardId}`, {
@@ -605,6 +610,7 @@ function App() {
     const cardKey = String(card.id);
     if (savedIds.has(cardKey) || savingIds.has(cardKey)) return;
     setSavingIds((current) => new Set(current).add(cardKey));
+    setBusyMessage("Saving insight...");
     setBusy(true);
     try {
       const response = await fetch("/api/cards", {
@@ -626,6 +632,7 @@ function App() {
     }
   };
   const deleteCard = async (card: Card) => {
+    setBusyMessage("Removing insight...");
     setBusy(true);
     try {
       if (savedIds.has(String(card.id))) await fetch(`/api/cards/${card.id}`, { method: "DELETE" });
@@ -650,7 +657,7 @@ function App() {
         <div className="busy-overlay" role="status" aria-live="polite">
           <div className="busy-panel">
             <RefreshCw className="animate-spin text-[#f58025]" size={22} />
-            <span>Updating ISO Payments Insight</span>
+            <span>{busyMessage}</span>
           </div>
         </div>
       )}
@@ -673,10 +680,44 @@ function App() {
             <Database size={17} />
             Payment data
           </div>
-          <div className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-500">
-            <CircleHelp size={17} />
-            Demo guide
-          </div>
+          <button
+            className="sidebar-saved-insights flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-500"
+            onClick={() => setSavedMenuOpen((open) => !open)}
+            aria-expanded={savedMenuOpen}
+          >
+            <Bookmark size={17} />
+            <span>Saved insights</span>
+            <span className="sidebar-saved-count">{savedIds.size}</span>
+            <ChevronDown className={`sidebar-saved-chevron ${savedMenuOpen ? "is-open" : ""}`} size={15} />
+          </button>
+          {savedMenuOpen && (
+            <div className="sidebar-saved-list">
+              {savedVisible.length > 0 ? [...savedVisible].reverse().slice(0, 6).map((card) => (
+                <button
+                  key={card.id}
+                  className="sidebar-saved-item"
+                  title={`Open ${card.title}`}
+                  onClick={() => {
+                    const target = document.getElementById(`insight-card-${card.id}`);
+                    if (!target) return;
+                    target.scrollIntoView({ behavior: "smooth", block: "center" });
+                    window.setTimeout(() => target.focus({ preventScroll: true }), 250);
+                  }}
+                >
+                  <span className={`sidebar-saved-icon sidebar-saved-${card.spec.type}`}>
+                    {card.spec.type === "table" ? <Table2 size={12} /> : card.spec.type === "metric" ? <BarChart3 size={12} /> : card.spec.type === "text" ? <Edit3 size={12} /> : <LineChart size={12} />}
+                  </span>
+                  <span className="sidebar-saved-copy">
+                    <strong>{card.title}</strong>
+                    <small>{insightTypeLabel(card.spec.type)}</small>
+                  </span>
+                </button>
+              )) : (
+                <span className="sidebar-saved-empty">No saved insights yet</span>
+              )}
+              {savedVisible.length > 6 && <span className="sidebar-saved-more">+{savedVisible.length - 6} more saved</span>}
+            </div>
+          )}
         </nav>
         <div className="absolute bottom-6 left-7 right-7 border-t border-white/8 pt-5">
           <div className="flex items-center gap-3">
@@ -703,7 +744,6 @@ function App() {
                 <Database size={13} />
                 {cards.length} {cards.length === 1 ? "insight" : "insights"} on canvas
               </span>
-              <span className="header-message">See payment health clearly. Investigate exceptions faster.</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -728,18 +768,10 @@ function App() {
         </header>
         <div className="mx-auto max-w-7xl px-6 py-9 md:px-10">
           <section className="insight-builder mb-10 rounded-2xl border border-[#f58025]/25 bg-[#fff5ed] p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="builder-heading flex items-center gap-2 text-sm font-semibold text-white">
-                <Sparkles size={16} className="text-[#f58025]" />
-                <span>Build an insight</span>
-              </div>
+            <div className="mb-3 flex justify-end">
               <span className="font-mono text-[10px] uppercase tracking-[.16em] text-slate-500">
                 {activeId ? "Editing card" : "New card"}
               </span>
-            </div>
-            <div className="builder-intro">
-              <h2>Ask your payment data anything.</h2>
-              <p>Turn a natural-language question into a clear insight, metric, table, or chart.</p>
             </div>
             {pendingUpdate && (
               <>
@@ -810,78 +842,13 @@ function App() {
             </div>
           </section>
           <div className="workspace-layout">
-            <aside className="workspace-rail">
-              <div className="rail-heading">
-                <span className="rail-heading-kicker">Your insights</span>
-                <div className="canvas-heading">
-                  <span>Insight canvas</span>
-                  <span className="canvas-count">{visible.length} {visible.length === 1 ? "card" : "cards"}</span>
-                </div>
-                <span className="rail-save-note">Save cards explicitly</span>
-              </div>
-              <div className="rail-panel rail-summary">
-                <span className="rail-eyebrow">Workspace pulse</span>
-                <strong>{cards.length}</strong>
-                <span>{cards.length === 1 ? "saved insight" : "saved insights"}</span>
-                <div className="rail-rule" />
-                <p>Ask a question, shape the result, and keep the insights worth sharing.</p>
-              </div>
-              <div className="rail-panel">
-                <span className="rail-eyebrow">Try a demo query</span>
-                <button className="rail-prompt" onClick={() => { setTitle("Payment status overview"); setQuery("Show payment count by status as a bar chart"); queryInputRef.current?.focus(); }}>
-                  <span className="rail-prompt-icon"><BarChart3 size={14} /></span>
-                  <span>Payment status by volume</span>
-                </button>
-                <button className="rail-prompt" onClick={() => { setTitle("Failed payment review"); setQuery("Analyze failed payments and explain the main failure reasons"); queryInputRef.current?.focus(); }}>
-                  <span className="rail-prompt-icon rail-prompt-alert"><CircleHelp size={14} /></span>
-                  <span>Explain failed payments</span>
-                </button>
-                <button className="rail-prompt" onClick={() => { setTitle("Currency distribution"); setQuery("Create a pie chart showing payment distribution by currency"); queryInputRef.current?.focus(); }}>
-                  <span className="rail-prompt-icon rail-prompt-teal"><Database size={14} /></span>
-                  <span>Currency distribution</span>
-                </button>
-              </div>
-              <div className="rail-panel rail-insights">
-                <span className="rail-eyebrow">Saved insights</span>
-                {visible.length > 0 ? visible.slice(0, 5).map((card) => (
-                  <button
-                    key={card.id}
-                    className="rail-insight"
-                    title={`Open ${card.title}`}
-                    onClick={() => {
-                      const target = document.getElementById(`insight-card-${card.id}`);
-                      if (!target) return;
-                      setFocusedCardId(card.id);
-                      target.scrollIntoView({ behavior: "smooth", block: "center" });
-                      window.setTimeout(() => target.focus({ preventScroll: true }), 250);
-                      window.setTimeout(() => setFocusedCardId(null), 1800);
-                    }}
-                  >
-                    <span className={`rail-insight-icon rail-insight-${card.spec.type}`}>
-                      {card.spec.type === "table" ? <Table2 size={13} /> : card.spec.type === "metric" ? <BarChart3 size={13} /> : card.spec.type === "text" ? <Edit3 size={13} /> : <LineChart size={13} />}
-                    </span>
-                    <span className="rail-insight-copy">
-                      <strong className="tooltip-host" data-tooltip={card.title}>{card.title}</strong>
-                      <small>{insightTypeLabel(card.spec.type)}</small>
-                    </span>
-                  </button>
-                )) : (
-                  <p className="rail-empty">Your generated insights will appear here.</p>
-                )}
-                {visible.length > 5 && <span className="rail-more">+ {visible.length - 5} more insights on canvas</span>}
-              </div>
-              <div className="rail-note">
-                <Sparkles size={14} />
-                <span>Natural language in. Presentation-ready insight out.</span>
-              </div>
-            </aside>
             <section className="insight-grid">
               {canvasCards.map((card) => (
               <article
                 key={card.id}
                 id={`insight-card-${card.id}`}
                 tabIndex={-1}
-                className={`insight-card insight-card-${card.spec.type} min-w-0 rounded-2xl border border-white/9 bg-[#11151d] px-5 py-4 shadow-[0_12px_40px_rgba(0,0,0,.12)] transition ${focusedCardId === card.id ? "insight-card-focused" : ""} ${card.minimized ? "" : "min-h-[280px]"} ${maximizedId === card.id ? "card-is-maximized" : ""}`}
+                className={`insight-card insight-card-${card.spec.type} min-w-0 rounded-2xl border border-white/9 bg-[#11151d] px-5 py-4 shadow-[0_12px_40px_rgba(0,0,0,.12)] transition ${card.minimized ? "" : "min-h-[280px]"} ${maximizedId === card.id ? "card-is-maximized" : ""}`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="card-heading flex min-w-0 items-start gap-3">
@@ -903,11 +870,6 @@ function App() {
                       <h3 className="insight-title tooltip-host font-semibold text-white" data-tooltip={card.title}>
                         {card.title}
                       </h3>
-                      <p className="query-caption tooltip-host mt-2 text-[10px] text-slate-600" data-tooltip={card.query}>
-                        <span className="query-caption-window">
-                          <span className="query-caption-preview">{card.query}</span>
-                        </span>
-                      </p>
                     </div>
                   </div>
                   <div className="card-actions flex shrink-0 items-center gap-1 text-slate-600">
@@ -950,6 +912,11 @@ function App() {
                     </button>
                   </div>
                 </div>
+                <p className="query-caption tooltip-host mt-3 text-[10px] text-slate-600" data-tooltip={card.query}>
+                  <span className="query-caption-window">
+                    <span className="query-caption-preview">{card.query}</span>
+                  </span>
+                </p>
                 {!card.minimized && (
                   <>
                     <div className="card-result-scroll mt-5 min-w-0">

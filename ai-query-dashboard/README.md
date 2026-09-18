@@ -6,17 +6,37 @@ The frontend is a light-theme React dashboard for asking questions and displayin
 
 - Sends natural-language prompts to the backend API.
 - Displays results as cards with text, metrics, tables, and charts.
-- Lets users edit, minimize, maximize, and delete cards.
+- Lets users edit, minimize, delete, and expand cards into a full-screen view.
 - Saves cards into MongoDB through the backend API.
-- Reuses saved cards for repeated queries.
-- Supports search and a clean single-mode visual design with light styling.
+- Shows saved cards in an expandable sidebar menu with a live count.
+- Shows the full query preview in each card with hover details.
+- Supports search and a clean light-theme visual design.
+
+## Dashboard flow
+
+```mermaid
+flowchart TD
+  U[Enter natural-language question] --> R[Run query]
+  R --> C[Receive render specification]
+  C --> V{Result type}
+  V --> T[Text analysis]
+  V --> K[KPI metric]
+  V --> B[Chart]
+  V --> D[Data table]
+  T --> S[Save insight]
+  K --> S
+  B --> S
+  D --> S
+  S --> M[Saved insights menu]
+  M --> F[Open full-screen card]
+```
 
 ## Tech stack
 
 - React 19
 - TypeScript
 - Vite
-- Tailwind-inspired custom styling
+- Tailwind CSS with custom CSS styling
 - Recharts for chart rendering
 - Lucide icons
 
@@ -59,10 +79,11 @@ The front end calls these endpoints on the backend:
 - POST /api/query
 - GET /api/cards
 - POST /api/cards
+- PUT /api/cards/{id}
 - DELETE /api/cards/{id}
 
 The query response is expected to be a render specification object containing fields like type, title, summary, data, xKey, yKey, and related visual metadata.
 
 ## Notes
 
-The dashboard is intentionally designed to render generic result payloads rather than hard-coded domain views, so the backend can return different answer types as needed.
+The dashboard renders generic result payloads rather than hard-coded domain views. It supports text, KPI, table, bar, stacked bar, line, area, pie, scatter, and histogram responses.

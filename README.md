@@ -4,8 +4,8 @@ A two-part application that turns natural-language questions into reusable dashb
 
 ## Overview
 
-- Frontend: React + TypeScript + Vite dashboard that renders AI-generated JSON cards.
-- Backend: Spring Boot service that queries MongoDB, enforces guardrails, stores saved cards, and calls an AI provider.
+- Frontend: React + TypeScript + Vite dashboard that renders AI-generated JSON cards, with an expandable Saved insights menu and full-screen card view.
+- Backend: Spring Boot service that queries MongoDB, correlates operational logs for issue questions, enforces guardrails, stores saved cards, and calls an AI provider.
 - Data layer: sample ISO payments, operational logs, and real-world-style payment records for dashboard testing and demos.
 
 ## System flow
@@ -27,7 +27,23 @@ flowchart LR
 - Applies guardrails to keep queries within a safe time window and prevents unsupported large-range requests.
 - Reuses previously saved cards when the same query is asked again.
 - Renders AI responses as text, metrics, tables, and charts.
-- Keeps a file-based operational log for issue investigation and correlation.
+- Keeps 100 structured file-based operational events for rail, fraud, compliance, processing, database, and integration analysis.
+
+## Demo flow
+
+```mermaid
+flowchart LR
+    Q[User asks a question] --> C{Saved insight match?}
+    C -->|Yes| R[Return reusable insight card]
+    C -->|No| D[Load payment data]
+    D --> O{Issue or failure question?}
+    O -->|Yes| L[Load operational logs]
+    O -->|No| A[Build AI context]
+    L --> A
+    A --> M[Generate structured answer]
+    M --> V[Render metric, table, chart, or text]
+    V --> S[Save and reuse insight]
+```
 
 ## Quick start
 
@@ -78,4 +94,4 @@ The backend reads these values from the environment or defaults in application.p
 
 ## Notes
 
-This workspace is designed for experimentation and demos, not production-grade deployment by default. The sample data and operational logs are intentionally structured to support realistic payment and exception analysis scenarios.
+This workspace is designed for experimentation and demos, not production-grade deployment by default. The sample payment data and operational logs are structured to support realistic trend, failure, fraud, and exception analysis scenarios.

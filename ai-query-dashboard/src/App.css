@@ -646,10 +646,10 @@ aside > div:last-child {
 }
 
 .app-shell .query-caption-preview {
-  display: inline-block;
-  white-space: nowrap;
+  display: block;
+  color: #123f5c;
+  white-space: normal;
   vertical-align: bottom;
-  animation: query-caption-scroll 4.5s linear infinite alternate;
   transition: color .18s ease;
 }
 
@@ -657,22 +657,11 @@ aside > div:last-child {
   display: block;
   min-width: 0;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
-.app-shell .query-caption:hover .query-caption-preview {
-  color: #123f5c;
-}
-
-@keyframes query-caption-scroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-38%);
-  }
-}
+.app-shell .query-caption:hover .query-caption-preview { color: #0d3954; }
 
 .app-shell .card-timestamp {
   display: inline-flex;
@@ -744,7 +733,10 @@ aside > div:last-child {
   line-height: 1;
 }
 
-.app-shell nav > div {
+.app-shell nav > div,
+.app-shell nav > button {
+  min-height: 42px;
+  padding: 0 12px !important;
   font-weight: 700;
   letter-spacing: -.01em;
 }
@@ -756,6 +748,131 @@ aside > div:last-child {
 
 .app-shell nav > div:not(:first-child) {
   color: #b7c7d9 !important;
+}
+
+.app-shell .sidebar-saved-insights {
+  background: rgba(245, 128, 37, .12);
+  color: #ffffff !important;
+  box-shadow: inset 3px 0 0 #f58025;
+}
+
+.app-shell .sidebar-saved-insights svg {
+  color: #f58025;
+}
+
+.app-shell .sidebar-saved-count {
+  display: inline-grid;
+  min-width: 22px;
+  height: 20px;
+  margin-left: auto;
+  place-items: center;
+  border: 1px solid rgba(245, 128, 37, .45);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .12);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.app-shell .sidebar-saved-insights {
+  width: 100%;
+  min-height: 42px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.app-shell nav > div > svg,
+.app-shell nav > button > svg:first-child {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+}
+
+.app-shell .sidebar-saved-chevron {
+  margin-left: 2px;
+  color: #8da5ba;
+  transition: transform .18s ease;
+}
+
+.app-shell .sidebar-saved-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.app-shell .sidebar-saved-list {
+  display: grid;
+  gap: 4px;
+  margin: -2px 0 4px 10px;
+  padding: 5px 0 4px 13px;
+  border-left: 1px solid #d9e2ec;
+}
+
+.app-shell .sidebar-saved-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  min-width: 0;
+  border-radius: 7px;
+  padding: 0 8px;
+  color: #40566f;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color .18s ease, color .18s ease;
+}
+
+.app-shell .sidebar-saved-item:hover {
+  background: #eef5fb;
+  color: #172b4d;
+}
+
+.app-shell .sidebar-saved-icon {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 6px;
+}
+
+.app-shell .sidebar-saved-text { background: #fff0e7; color: #d36c22; }
+.app-shell .sidebar-saved-metric { background: #e6f5f3; color: #1c7c8c; }
+.app-shell .sidebar-saved-table { background: #edf2f8; color: #6684a8; }
+.app-shell .sidebar-saved-bar,
+.app-shell .sidebar-saved-stackedBar,
+.app-shell .sidebar-saved-histogram { background: #eff6e7; color: #6b8e23; }
+.app-shell .sidebar-saved-line,
+.app-shell .sidebar-saved-area { background: #e6f0fa; color: #315b86; }
+.app-shell .sidebar-saved-pie,
+.app-shell .sidebar-saved-scatter { background: #fff0ed; color: #d4634e; }
+
+.app-shell .sidebar-saved-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.app-shell .sidebar-saved-copy strong {
+  overflow: hidden;
+  color: #172b4d;
+  font-size: 10px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell .sidebar-saved-copy small,
+.app-shell .sidebar-saved-empty,
+.app-shell .sidebar-saved-more {
+  color: #8a9aae;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.app-shell .sidebar-saved-more {
+  padding: 4px 8px 0;
 }
 
 .app-shell section.mb-10 {
@@ -926,7 +1043,7 @@ aside > div:last-child {
   display: grid;
   align-items: start;
   gap: 18px;
-  grid-template-columns: 205px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .app-shell .workspace-rail {
@@ -1205,15 +1322,22 @@ aside > div:last-child {
 }
 
 .app-shell .insight-card.card-is-maximized {
-  grid-column: 1 / -1;
-  min-height: 480px;
+  position: fixed;
+  inset: 16px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   border-color: #f58025 !important;
   box-shadow: 0 0 0 3px rgba(245, 128, 37, .13), 0 16px 36px rgba(23, 43, 77, .14) !important;
   transform: none;
 }
 
 .app-shell .insight-card.card-is-maximized .card-result-scroll {
-  max-height: 610px;
+  max-height: none;
+  min-height: 0;
+  flex: 1 1 auto;
 }
 
 .app-shell .insight-card.card-is-maximized .card-action-expand {
