@@ -461,7 +461,7 @@ aside > div:last-child {
 
 .app-shell .tooltip-host {
   position: relative;
-  cursor: help;
+  cursor: default;
 }
 
 
@@ -477,22 +477,24 @@ aside > div:last-child {
 
 .app-shell .tooltip-host::before {
   content: '';
-  top: calc(100% + 8px);
+  top: auto;
+  bottom: calc(100% + 8px);
   left: 16px;
   width: 10px;
   height: 10px;
-  border-top: 1px solid #315b86;
-  border-left: 1px solid #315b86;
+  border-right: 1px solid #315b86;
+  border-bottom: 1px solid #315b86;
   background: #172b4d;
   transform: translateY(-4px) rotate(45deg);
 }
 
 .app-shell .tooltip-host::after {
   content: attr(data-tooltip);
-  top: calc(100% + 12px);
+  top: auto;
+  bottom: calc(100% + 12px);
   left: 0;
   width: max-content;
-  max-width: min(360px, 52vw);
+  max-width: min(500px, 70vw);
   border: 1px solid #315b86;
   border-radius: 9px;
   background: linear-gradient(135deg, #172b4d 0%, #24496f 100%);
@@ -531,6 +533,11 @@ aside > div:last-child {
 .app-shell .insight-card:has(.tooltip-host:hover),
 .app-shell .rail-panel:has(.tooltip-host:hover) {
   z-index: 30;
+}
+
+.app-shell .insight-card > .card-heading:has(.tooltip-host:hover),
+.app-shell .insight-card > .card-heading:has(.tooltip-host:focus-visible) {
+  z-index: 20;
 }
 .app-shell .insight-card::before {
   content: '';
@@ -617,40 +624,54 @@ aside > div:last-child {
 }
 
 .app-shell .query-caption {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 34px;
-  border: 1px solid #e5ebf1;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  border: 1px solid #c5d9e8;
   border-radius: 8px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f6fa 100%);
-  padding: 7px 10px;
-  color: #40566f !important;
-  font-family: 'Manrope', sans-serif;
-  font-size: 11px;
+  background: linear-gradient(135deg, #eaf5fb 0%, #dcecf5 100%);
+  padding: 9px 12px;
+  color: #1e587c !important;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
   letter-spacing: 0;
+  box-shadow: inset 3px 0 0 #1c7c8c, 0 3px 8px rgba(28, 124, 140, .08);
 }
 
-.app-shell .query-caption-label {
-  flex: 0 0 auto;
-  border-radius: 4px;
-  background: #e4edf5;
-  padding: 3px 5px;
-  color: #9aaabd;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .1em;
+.app-shell .card-heading {
+  flex: 1 1 auto;
 }
 
-.app-shell .query-caption > span:last-child {
-  color: #40566f;
-  font-weight: 700;
-}
-
-.app-shell .query-caption > span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
+.app-shell .query-caption-preview {
+  display: inline-block;
   white-space: nowrap;
+  vertical-align: bottom;
+  animation: query-caption-scroll 4.5s linear infinite alternate;
+  transition: color .18s ease;
+}
+
+.app-shell .query-caption-window {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.app-shell .query-caption:hover .query-caption-preview {
+  color: #123f5c;
+}
+
+@keyframes query-caption-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-38%);
+  }
 }
 
 .app-shell .card-timestamp {

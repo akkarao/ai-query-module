@@ -884,7 +884,7 @@ function App() {
                 className={`insight-card insight-card-${card.spec.type} min-w-0 rounded-2xl border border-white/9 bg-[#11151d] px-5 py-4 shadow-[0_12px_40px_rgba(0,0,0,.12)] transition ${focusedCardId === card.id ? "insight-card-focused" : ""} ${card.minimized ? "" : "min-h-[280px]"} ${maximizedId === card.id ? "card-is-maximized" : ""}`}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex min-w-0 items-start gap-3">
+                  <div className="card-heading flex min-w-0 items-start gap-3">
                     <div className="insight-icon mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-xl">
                       {card.spec.type === "table" ? (
                         <Table2 size={15} />
@@ -903,9 +903,10 @@ function App() {
                       <h3 className="insight-title tooltip-host font-semibold text-white" data-tooltip={card.title}>
                         {card.title}
                       </h3>
-                      <p className="query-caption tooltip-host mt-2 font-mono text-[10px] text-slate-600" data-tooltip={card.query}>
-                        <span className="query-caption-label">ASKED</span>
-                        <span>{card.query}</span>
+                      <p className="query-caption tooltip-host mt-2 text-[10px] text-slate-600" data-tooltip={card.query}>
+                        <span className="query-caption-window">
+                          <span className="query-caption-preview">{card.query}</span>
+                        </span>
                       </p>
                     </div>
                   </div>
