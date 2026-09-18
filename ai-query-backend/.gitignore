@@ -16,6 +16,7 @@
 
 # Logs
 *.log
+!src/main/resources/operational-logs.log
 
 # Local env/config
 .env
